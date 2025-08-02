@@ -1,0 +1,221 @@
+ul li.checked .dueDate {
+  color: #eee;
+}
+
+/* Test Runner Styling */
+#test-runner {
+  margin: 20px 40px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  font-family: monospace;
+}
+#test-runner h3 {
+  margin-top: 0;
+}
+.test-case {
+  padding: 5px;
+  border-bottom: 1px solid #ddd;
+}
+.test-case.pass {
+  color: green;
+}
+.test-case.fail {
+  color: red;
+  font-weight: bold;
+}
+.test-case.fail pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #333;
+  background: #ffecec;
+  padding: 10px;
+  border-radius: 5px;
+  font-weight: normal;
+  margin-top: 5px;
+}
+</style>
+</head>
+<body>
+
+<div id="myDIV" class="header">
+  <h2>My To-Do List</h2>
+  <input type="text" id="myInput" placeholder="Title...">
+  <input type="date" id="myDateInput">
+  <span onclick="newElement()" class="addBtn">Add</span>
+</div>
+
+<ul id="myUL"></ul>
+
+<div id="test-runner">
+  <h3>Application Tests</h3>
+  <div id="test-results"></div>
+</div>
+
+<script>
+// --- Application Logic ---
+
+// Function to add a close button to a list item
+function addCloseButton(li) {
+    const span = document.createElement("SPAN");
+    const txt = document.createTextNode("\u00D7"); // "x" character
+    span.className = "close";
+    span.appendChild(txt);
+    li.appendChild(span);
+}
+
+// Use event delegation for handling clicks on the list
+const list = document.querySelector('#myUL');
+list.addEventListener('click', function(ev) {
+    // Handle marking as checked by clicking on the LI element itself
+    if (ev.target.tagName === 'LI') {
+        ev.target.classList.toggle('checked');
+    }
+
+    // Handle deleting an item by clicking on the close button
+    if (ev.target.classList.contains('close')) {
+        const li = ev.target.parentElement;
+        li.remove();
+    }
+}, false);
+
+// Create a new list item when clicking on the "Add" button
+function newElement() {
+    const inputValue = document.getElementById("myInput").value;
+    const dateValue = document.getElementById("myDateInput").value;
+
+    if (inputValue === '') {
+        alert("You must write something!");
+        return; // Exit the function if the input is empty
+    }
+
+    // Create the new list item
+    const li = document.createElement("li");
+    const t = document.createTextNode(inputValue);
+    li.appendChild(t);
+
+    // Add due date if one was selected
+    if (dateValue) {
+        const dateSpan = document.createElement("span");
+        dateSpan.className = "dueDate";
+        dateSpan.appendChild(document.createTextNode("Due: " + dateValue));
+        li.appendChild(dateSpan);
+    }
+
+    // Add the close button to the new item
+    addCloseButton(li);
+
+    document.getElementById("myUL").appendChild(li);
+
+    // Clear the input fields
+    document.getElementById("myInput").value = "";
+    document.getElementById("myDateInput").value = "";
+}
+
+// Allow pressing Enter to add a new item
+document.getElementById("myInput").addEventListener("keyup", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        newElement();
+    }
+});
+
+// --- Simple Test Runner ---
+const testResultsContainer = document.getElementById('test-results');
+
+function test(description, fn) {
+    const testCaseDiv = document.createElement('div');
+    testCaseDiv.className = 'test-case';
+    try {
+        fn();
+        testCaseDiv.classList.add('pass');
+        testCaseDiv.textContent = `✓ PASS: ${description}`;
+    } catch (e) {
+        testCaseDiv.classList.add('fail');
+        const errorDetails = document.createElement('pre');
+        errorDetails.textContent = e.stack;
+        testCaseDiv.innerHTML = `✗ FAIL: ${description}`;
+        testCaseDiv.appendChild(errorDetails);
+    }
+    testResultsContainer.appendChild(testCaseDiv);
+}
+
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(message || "Assertion failed");
+    }
+}
+
+function assertEqual(actual, expected, message) {
+    if (actual !== expected) {
+        throw new Error(message || `Expected "${expected}" but got "${actual}"`);
+    }
+}
+
+function runTests() {
+    const taskInput = document.getElementById('myInput');
+    const list = document.getElementById('myUL');
+    const setup = () => { list.innerHTML = ''; taskInput.value = ''; };
+
+    test('should add a new to-do item without a date', () => {
+        setup();
+        taskInput.value = 'A new task';
+        newElement();
+        assertEqual(list.children.length, 1, 'List item count should be 1');
+        const newItem = list.lastElementChild;
+        assert(newItem.textContent.includes('A new task'), 'New item text content is incorrect');
+        assertEqual(newItem.querySelector('.dueDate'), null, 'Item should not have a due date');
+    });
+
+    test('should add a new to-do item with a due date', () => {
+        setup();
+        taskInput.value = 'A dated task';
+        document.getElementById('myDateInput').value = '2025-12-25';
+        newElement();
+        const newItem = list.lastElementChild;
+        const dueDateSpan = newItem.querySelector('.dueDate');
+        assert(dueDateSpan !== null, 'Due date span should exist');
+        assertEqual(dueDateSpan.textContent, 'Due: 2025-12-25', 'Due date text is incorrect');
+    });
+
+    test('should NOT add an item if the title is empty (failure condition)', () => {
+        setup();
+        const originalAlert = window.alert;
+        let alertCalled = false;
+        window.alert = () => { alertCalled = true; }; // Temporarily override alert
+        newElement();
+        assertEqual(list.children.length, 0, 'List item count should remain 0');
+        assert(alertCalled, 'Alert should have been called for empty input');
+        window.alert = originalAlert; // Restore original alert
+    });
+
+    test('should toggle the "checked" class on list item click', () => {
+        setup();
+        taskInput.value = 'Task to check';
+        newElement();
+        const item = list.firstElementChild;
+        assert(!item.classList.contains('checked'), 'Item should not be checked initially');
+        item.click();
+        assert(item.classList.contains('checked'), 'Item should be checked after first click');
+        item.click();
+        assert(!item.classList.contains('checked'), 'Item should be unchecked after second click');
+    });
+
+    test('should remove an item when its close button is clicked', () => {
+        setup();
+        taskInput.value = 'Task to delete';
+        newElement();
+        const item = list.firstElementChild;
+        const closeButton = item.querySelector('.close');
+        closeButton.click();
+        assertEqual(list.children.length, 0, 'List item count should be 0 after deletion');
+    });
+}
+
+// Run tests when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', runTests);
+</script>
+
+</body>
+
+</html>
