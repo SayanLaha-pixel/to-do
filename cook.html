@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Cook List</title>
+    <style>
+        /* General Body Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* Main Application Container */
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        /* Input and Button Container */
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #recipeInput {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #recipeInput:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        #dueDateInput {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            font-family: inherit; /* Match font */
+            color: #555;
+            -webkit-appearance: none; /* Removes default chrome styling */
+        }
+
+        #dueDateInput:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        #addRecipeBtn {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #addRecipeBtn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Recipe List Styles */
+        #recipeList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s ease;
+        }
+
+        li:first-child {
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        
+        li:last-child {
+            border-bottom: none;
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+
+        li:hover {
+            background-color: #f1f1f1;
+        }
+
+        .recipe-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 10px;
+        }
+
+        .due-date {
+            font-size: 0.85em;
+            color: #666;
+            font-style: italic;
+        }
+
+        .remove-btn {
+            padding: 5px 10px;
+            border: none;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* Test Section Styles */
+        #test-container {
+            margin-top: 40px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        #test-container h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        #runTestsBtn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .test-result { padding: 5px; border-radius: 3px; margin-bottom: 5px; }
+        .test-pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+        .test-fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>My To-Cook List</h1>
+        <div class="input-container">
+            <input type="text" id="recipeInput" placeholder="e.g., Spaghetti Carbonara">
+            <input type="date" id="dueDateInput">
+            <button id="addRecipeBtn">Add</button>
+        </div>
+        <ul id="recipeList">
+            <!-- Recipes will be added here dynamically -->
+        </ul>
+    </div>
+
+    <div class="container" id="test-container">
+        <h2>Application Tests</h2>
+        <button id="runTestsBtn">Run Tests</button>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const recipeInput = document.getElementById('recipeInput');
+            const addRecipeBtn = document.getElementById('addRecipeBtn');
+            const recipeList = document.getElementById('recipeList');
+            const dueDateInput = document.getElementById('dueDateInput');
+
+            // Function to add a new recipe. Returns true on success, false on failure.
+            function addRecipe(showAlerts = true) {
+                const recipeText = recipeInput.value.trim();
+                const dueDate = dueDateInput.value;
+
+                if (recipeText === '') {
+                    if (showAlerts) alert('Please enter a recipe name.');
+                    return;
+                }
+
+                // Create list item
+                const li = document.createElement('li');
+
+                // Create a container for recipe text and due date
+                const recipeContent = document.createElement('div');
+                recipeContent.className = 'recipe-content';
+
+                // Create span for the recipe text and add it to the container
+                const recipeSpan = document.createElement('span');
+                recipeSpan.textContent = recipeText;
+                recipeContent.appendChild(recipeSpan);
+
+                // If a due date is set, create a span for it and add it
+                if (dueDate) {
+                    const dueDateSpan = document.createElement('span');
+                    dueDateSpan.className = 'due-date';
+                    dueDateSpan.textContent = `Due: ${dueDate}`;
+                    recipeContent.appendChild(dueDateSpan);
+                }
+
+                // Create remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.className = 'remove-btn';
+
+                // Append elements
+                li.appendChild(recipeContent);
+                li.appendChild(removeBtn);
+                recipeList.appendChild(li);
+
+                // Clear input and focus
+                recipeInput.value = '';
+                dueDateInput.value = '';
+                if (showAlerts) recipeInput.focus();
+                return true;
+            }
+
+            // Event listener for the "Add" button
+            addRecipeBtn.addEventListener('click', addRecipe);
+            
+            // Event listener for the "Enter" key in the input field
+            recipeInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    addRecipe();
+                }
+            });
+
+            // Event listener for remove buttons (using event delegation)
+            recipeList.addEventListener('click', (event) => {
+                if (event.target && event.target.classList.contains('remove-btn')) {
+                    const li = event.target.parentElement;
+                    recipeList.removeChild(li);
+                }
+            });
+
+            /**********************************
+             *           TEST RUNNER          *
+             **********************************/
+            const runTestsBtn = document.getElementById('runTestsBtn');
+            const testResultsDiv = document.getElementById('test-results');
+
+            function reportTestResult(description, passed) {
+                const resultEl = document.createElement('div');
+                resultEl.className = passed ? 'test-result test-pass' : 'test-result test-fail';
+                resultEl.textContent = `[${passed ? 'PASS' : 'FAIL'}] ${description}`;
+                testResultsDiv.appendChild(resultEl);
+            }
+
+            function runTests() {
+                // Clear previous results and list
+                testResultsDiv.innerHTML = '';
+                recipeList.innerHTML = '';
+                let pass = true;
+
+                // --- Test 1: Add a recipe (Success Condition) ---
+                recipeInput.value = 'Test Lasagna';
+                dueDateInput.value = '2024-12-25';
+                addRecipe(false); // Add without alerts
+                const firstItem = recipeList.querySelector('li');
+                pass = firstItem && firstItem.textContent.includes('Test Lasagna') && firstItem.textContent.includes('Due: 2024-12-25');
+                reportTestResult('Should add a new recipe with a due date.', pass);
+
+                // --- Test 2: Add a recipe with no name (Failure Condition) ---
+                recipeInput.value = '';
+                dueDateInput.value = '';
+                const initialCount = recipeList.children.length;
+                addRecipe(false);
+                const finalCount = recipeList.children.length;
+                pass = initialCount === finalCount;
+                reportTestResult('Should not add a recipe with an empty name.', pass);
+
+                // --- Test 3: Remove a recipe (Success Condition) ---
+                // First, ensure an item exists to be removed
+                recipeList.innerHTML = ''; // Clean slate
+                recipeInput.value = 'To Be Deleted';
+                dueDateInput.value = '';
+                addRecipe(false);
+
+                const itemToRemove = recipeList.querySelector('li');
+                if (itemToRemove) {
+                    const removeButton = itemToRemove.querySelector('.remove-btn');
+                    if (removeButton) {
+                        removeButton.click(); // Simulate click
+                        pass = recipeList.children.length === 0;
+                        reportTestResult('Should remove a recipe when the remove button is clicked.', pass);
+                    } else {
+                        reportTestResult('Could not find remove button for test.', false);
+                    }
+                } else {
+                    reportTestResult('Could not create item to test removal.', false);
+                }
+
+                // --- Cleanup after tests ---
+                recipeList.innerHTML = '';
+                recipeInput.value = '';
+                dueDateInput.value = '';
+            }
+
+            runTestsBtn.addEventListener('click', runTests);
+        });
+    </script>
+
+</body>
+</html>
